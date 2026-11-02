@@ -4,7 +4,6 @@
 #define NUM_LINEAS 13
 #define LARGO_LINEA 7
 
-
 // en vez de escribir a mano los vecinos de las 28 casillas anote las lineas rectas
 // del tablero y que el programa los saque solo. el -1 es donde termina la linea
 // 2 casillas seguidas en una linea son vecinas y 3 seguidas es un salto del puma
@@ -23,9 +22,6 @@ int lineas[NUM_LINEAS][LARGO_LINEA] = {
     { 7,  2,  0, -1},
     { 1,  2, -1}
 };
-
-
-
 
 int vecinos[NUM_CASILLAS][MAX_VECINOS];
 int num_vecinos[NUM_CASILLAS];
@@ -46,7 +42,6 @@ void agregar_salto(int desde, int sobre, int hacia) {
     salto_destino[desde][num_saltos[desde]] = hacia;
     num_saltos[desde]++;
 }
-
 
 
 // se llama una sola vez en el main, antes de crear los hilos
@@ -74,6 +69,96 @@ void preparar_tablero(void) {
                 agregar_salto(c, b, a);   // y al reves
             }
         }
-        
     }
+}
+
+
+
+int es_perro(int contenido) {
+
+    if (contenido >= 0 && contenido < NUM_PERROS) {
+        return 1;
+    }
+    return 0;
+}
+
+int son_vecinos(int a, int b) {
+
+    for (int k = 0; k < num_vecinos[a]; k++) {
+        if (vecinos[a][k] == b) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// si se puede saltar de desde a hacia devuelve la casilla del medio, si no -1
+int buscar_salto(int desde, int hacia) {
+
+    for (int k = 0; k < num_saltos[desde]; k++) {
+        if (salto_destino[desde][k] == hacia) {
+            return salto_sobre[desde][k];
+        }
+    }
+    return -1;
+}
+
+
+// si devuelve 0 el puma quedo encerrado y ganan los perros
+int puma_puede_moverse(int casillas[]) {
+
+    int pos = -1;
+    for (int c = 0; c < NUM_CASILLAS; c++) {
+        if (casillas[c] == FICHA_PUMA) {
+            pos = c;
+        }
+    }
+    if (pos == -1) {
+        return 0;
+    }
+
+    for (int k = 0; k < num_vecinos[pos]; k++) {
+        if (casillas[vecinos[pos][k]] == VACIA) {
+            return 1;
+        }
+    }
+
+    // aunque tenga todo ocupado alrededor, si se puede comer a alguien no esta encerrado
+    for (int k = 0; k < num_saltos[pos]; k++) {
+        if (es_perro(casillas[salto_sobre[pos][k]]) && casillas[salto_destino[pos][k]] == VACIA) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
+// fila -2 es la T, fila -1 el trono y de 0 a 4 el cuadrado
+void fila_y_columna(int c, int *fila, int *col) {
+
+    if (c == 0) {
+        *fila = -2;
+        *col = 2;
+    }
+    else if (c == 1) {
+        *fila = -1;
+        *col = 1;
+    }
+    else if (c == 2) {
+        *fila = -1;
+        *col = 3;
+    }
+    else {
+        *fila = (c - 3) / 5;
+        *col = (c - 3) % 5;
+    }
+}
+
+// no es exacta (no sigue las lineas) pero sirve pa q los perros sepan si se acercan al puma
+int distancia(int a, int b) {
+
+    int fila_a, col_a, fila_b, col_b;
+    fila_y_columna(a, &fila_a, &col_a);
+    fila_y_columna(b, &fila_b, &col_b);
+    return abs(fila_a - fila_b) + abs(col_a - col_b);
 }
