@@ -1,6 +1,28 @@
 #include "torneo.h"   // tiene que ir primero porque adentro esta el _POSIX_C_SOURCE
 #include <stdlib.h>
 #include <string.h>
+
+/* asi quedan numeradas las casillas (sacado del dibujo del enunciado)
+ *
+ *                 0
+ *               / | \
+ *             1---+---2
+ *           / |   |   | \
+ *          3--4---5---6--7
+ *          |  |   |   |  |
+ *          8--9--10--11--12
+ *          |  |   |   |  |
+ *         13-14--15--16--17
+ *          |  |   |   |  |
+ *         18-19--20--21--22
+ *          |  |   |   |  |
+ *         23-24--25--26--27
+ *
+ * el cuadrado no tiene diagonales, solo el trono las tiene.
+ * el + no es casilla, la linea de la T baja directo a la 5
+ */
+
+
 #define NUM_LINEAS 13
 #define LARGO_LINEA 7
 
@@ -161,4 +183,80 @@ int distancia(int a, int b) {
     fila_y_columna(a, &fila_a, &col_a);
     fila_y_columna(b, &fila_b, &col_b);
     return abs(fila_a - fila_b) + abs(col_a - col_b);
+}
+
+
+
+
+// para dibujar: P es el puma, o es un perro y . es una casilla vacia
+#define ALTO_DIBUJO 13
+#define ANCHO_DIBUJO 22
+
+char *plantilla[ALTO_DIBUJO] = {
+    "          .           ",
+    "        / | \\         ",
+    "      .---+---.       ",
+    "    / |   |   | \\     ",
+    "  .---.---.---.---.   ",
+    "  |   |   |   |   |   ",
+    "  .---.---.---.---.   ",
+    "  |   |   |   |   |   ",
+    "  .---.---.---.---.   ",
+    "  |   |   |   |   |   ",
+    "  .---.---.---.---.   ",
+    "  |   |   |   |   |   ",
+    "  .---.---.---.---.   "
+};
+
+// deja el dibujo en 'texto' en vez de imprimirlo, asi se puede mandar al log o a la pantalla
+void dibujar_tablero(int casillas[], char *texto, int tam) {
+
+    char dibujo[ALTO_DIBUJO][ANCHO_DIBUJO + 1];
+    for (int r = 0; r < ALTO_DIBUJO; r++) {
+        strcpy(dibujo[r], plantilla[r]);
+    }
+
+    for (int c = 0; c < NUM_CASILLAS; c++) {
+
+        int fila, col;
+        fila_y_columna(c, &fila, &col);
+        int renglon = 4 + 2 * fila;   // asi la T cae en el renglon 0 y el trono en el 2
+        int x = 2 + 4 * col;
+
+        if (casillas[c] == FICHA_PUMA) {
+            dibujo[renglon][x] = 'P';
+        }
+        else if (es_perro(casillas[c])) {
+            dibujo[renglon][x] = 'o';
+        }
+        else {
+            dibujo[renglon][x] = '.';
+        }
+    }
+
+    texto[0] = '\0';
+    int usado = 0;
+    for (int r = 0; r < ALTO_DIBUJO && usado < tam; r++) {
+        usado += snprintf(texto + usado, tam - usado, "      %s\n", dibujo[r]);
+    }
+}
+
+
+// sale cuando el programa se usa mal, pa saber que numeros poner en el config
+void imprimir_mapa(void) {
+
+    printf("Numeros de casilla (para la disposicion inicial en config.txt):\n\n");
+    printf("                 0\n");
+    printf("               / | \\\n");
+    printf("             1---+---2\n");
+    printf("           / |   |   | \\\n");
+    printf("          3--4---5---6--7\n");
+    printf("          |  |   |   |  |\n");
+    printf("          8--9--10--11--12\n");
+    printf("          |  |   |   |  |\n");
+    printf("         13-14--15--16--17\n");
+    printf("          |  |   |   |  |\n");
+    printf("         18-19--20--21--22\n");
+    printf("          |  |   |   |  |\n");
+    printf("         23-24--25--26--27\n\n");
 }
