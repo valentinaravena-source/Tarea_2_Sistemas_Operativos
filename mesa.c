@@ -371,3 +371,181 @@ int elegir_movimiento(Mesa *m, Ficha *f, int *desde, int *hacia) {
     *hacia = opciones[rand_r(&f->semilla) % n];
     return 1;
 }
+
+
+
+
+void preparar_partida(Mesa *m) {
+
+    // asi se crea un candado robusto (ver revisar_dueno_muerto)
+    pthread_mutexattr_t atributos;
+    pthread_mutexattr_init(&atributos);
+    pthread_mutexattr_setrobust(&atributos, PTHREAD_MUTEX_ROBUST);
+    pthread_mutex_init(&m->candado, &atributos);
+    pthread_mutexattr_destroy(&atributos);
+
+    pthread_cond_init(&m->aviso, NULL);
+
+    for (int c = 0; c < NUM_CASILLAS; c++) {
+        m->casillas[c] = VACIA;
+    }
+
+    for (int i = 0; i < NUM_FICHAS; i++) {
+
+        Ficha *f = &m->fichas[i];
+        f->id = i;
+        f->viva = 1;
+        f->creada = 0;
+        f->mesa = m;
+        f->semilla = m->semilla + 7919u * (i + 1);   // le sumo algo distinto a cada una pa que no piensen igual
+
+        if (i == FICHA_PUMA) {
+            f->posicion = config.pos_puma;
+        }
+        else {
+            f->posicion = config.pos_perros[i];
+        }
+        m->casillas[f->posicion] = i;
+    }
+
+    m->estado = EN_JUEGO;
+    m->capturas = 0;
+    m->movimientos = 0;
+    m->rechazados = 0;
+    m->quien_tiene_candado = NADIE;
+    m->inicio_ms = ahora_ms();
+
+    // se va a caer alguien en esta partida?
+    m->lado_que_falla = LADO_NADIE;
+    m->falla_en_movimiento = 0;
+    if ((int)(rand_r(&m->semilla) % 100) < config.prob_falla) {
+
+        if (rand_r(&m->semilla) % 2 == 0) {
+            m->lado_que_falla = LADO_PUMA;
+        }
+        else {
+            m->lado_que_falla = LADO_PERROS;
+        }
+        m->falla_en_movimiento = 3 + rand_r(&m->semilla) % 28;
+    }
+
+    m->log = NULL;
+    if (config.log_detalle > 0) {
+
+        char archivo[64];
+        snprintf(archivo, sizeof(archivo), "logs/partida_%03d.log", m->partida);
+        m->log = fopen(archivo, "w");
+        if (m->log == NULL) {
+            perror("no se pudo abrir el log de la partida");
+        }
+    }
+}
+
+
+
+// el juez de una mesa (un hilo por mesa)
+void *juez(void *arg) {
+
+    Mesa *m = (Mesa *) arg;
+    char linea[200];
+
+    preparar_partida(m);
+    printf("[mesa %d] empieza la partida %d: jugador %d (puma) vs jugador %d (perros)\n",
+           m->numero, m->partida, m->jugador_puma, m->jugador_perros);
+    snprintf(linea, sizeof(linea), "Partida %d en la mesa %d: jugador %d (puma) vs jugador %d (perros)",
+             m->partida, m->numero, m->jugador_puma, m->jugador_perros);
+    anotar(m, linea);
+    mostrar_tablero(m, "tablero inicial");
+
+    // por si en el config ponen al puma ya encerrado
+    if (puma_puede_moverse(m->casillas) == 0) {
+        m->estado = GANAN_PERROS;
+    }
+
+    for (int i = 0; i < NUM_FICHAS; i++) {
+
+        if (pthread_create(&m->fichas[i].hilo, NULL, ficha, &m->fichas[i]) != 0) {
+
+            printf("[mesa %d] ERROR: no se pudo crear el hilo de una ficha, se cancela la partida\n", m->numero);
+            tomar_candado(m, QUIEN_JUEZ);
+            m->estado = CANCELADA;
+            soltar_candado(m);
+            break;
+        }
+        m->fichas[i].creada = 1;
+    }
+
+
+    // el juez duerme hasta que termine la partida. lo despierta una ficha cuando
+    // alguien gana o alguien se cae. igual despierta solo cada 200 ms para ver si
+    // hubo ctrl + c. va con while y no con if porque puede despertar sin que haya pasado nada
+    tomar_candado(m, QUIEN_JUEZ);
+    while (m->estado == EN_JUEGO) {
+
+        if (hay_que_cerrar()) {
+            m->estado = CANCELADA;
+            anotar(m, "El servidor pidio cerrar (Ctrl+C): partida cancelada");
+            break;
+        }
+
+        // la hora hasta la que va a dormir: ahora + 200 ms
+        struct timespec hasta;
+        clock_gettime(CLOCK_REALTIME, &hasta);
+        hasta.tv_nsec = hasta.tv_nsec + 200 * 1000000L;
+        if (hasta.tv_nsec >= 1000000000L) {
+            hasta.tv_sec++;
+            hasta.tv_nsec = hasta.tv_nsec - 1000000000L;
+        }
+
+        m->quien_tiene_candado = NADIE;   // mientras duerme el candado queda libre
+        int r = pthread_cond_timedwait(&m->aviso, &m->candado, &hasta);
+        revisar_dueno_muerto(m, r);   // al despertar tambien puede enterarse de que alguien murio
+        m->quien_tiene_candado = QUIEN_JUEZ;
+    }
+    int resultado = m->estado;
+    soltar_candado(m);
+
+    // esperar a todas las fichas, tambien a la que se cayo
+    for (int i = 0; i < NUM_FICHAS; i++) {
+        if (m->fichas[i].creada == 1) {
+            pthread_join(m->fichas[i].hilo, NULL);
+        }
+    }
+
+
+    char texto[160];
+    if (resultado == GANA_PUMA) {
+        sprintf(texto, "gana el jugador %d (puma), se comio %d perros", m->jugador_puma, m->capturas);
+    }
+    else if (resultado == GANAN_PERROS) {
+        sprintf(texto, "gana el jugador %d (perros), encerraron al puma", m->jugador_perros);
+    }
+    else if (resultado == ABANDONO_PUMA) {
+        sprintf(texto, "gana el jugador %d (perros) por abandono del puma", m->jugador_perros);
+    }
+    else if (resultado == ABANDONO_PERROS) {
+        sprintf(texto, "gana el jugador %d (puma) por abandono de los perros", m->jugador_puma);
+    }
+    else if (resultado == EMPATE) {
+        sprintf(texto, "empate: se llego al limite de %d movimientos", config.max_movimientos);
+    }
+    else {
+        sprintf(texto, "partida cancelada");
+    }
+
+    printf("[mesa %d] fin de la partida %d: %s (%d movimientos, %d rechazados)\n",
+           m->numero, m->partida, texto, m->movimientos, m->rechazados);
+    snprintf(linea, sizeof(linea), "FIN: %s (%d movimientos, %d rechazados)", texto, m->movimientos, m->rechazados);
+    anotar(m, linea);
+
+    // ya no queda ninguna ficha, asi que se puede destruir todo sin problema
+    pthread_cond_destroy(&m->aviso);
+    pthread_mutex_destroy(&m->candado);
+    if (m->log != NULL) {
+        fclose(m->log);
+        m->log = NULL;
+    }
+
+    devolver_mesa(m, resultado);   // la mesa queda libre pa la siguiente pareja
+    return NULL;
+}
