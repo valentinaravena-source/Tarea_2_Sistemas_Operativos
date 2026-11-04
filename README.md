@@ -1,18 +1,29 @@
 **Tarea 2: Torneo de Komikan Concurrente**  
 Integrantes: Valentín Aravena y Gustavo Femenias  
+   
+ Sistemas Operativos, UDP  
 **Cómo compilar y ejecutar**  
+```  
 make  
-./torneo N M \[config.txt\]  
+ ./torneo N M [config.txt]  
+   
+```  
 Sin make, el comando es:  
+```  
 gcc -Wall -Wextra -std=c17 -o torneo torneo.c mesa.c tablero.c lector_config.c -lpthread  
+   
+```  
 - N: cuántos jugadores llegan al servidor.  
 - M: cuántas mesas pueden estar jugando al mismo tiempo, como máximo.  
 - config.txt: es opcional. Si no se pone, se usan los valores por defecto (los mismos que trae el config.txt de ejemplo).  
 Algunos ejemplos:  
+```  
 ./torneo 10 3  
-./torneo 2 1 pruebas/demo.txt (una sola partida, dibujando el tablero en la terminal después de cada movimiento)  
-./torneo 20 4 pruebas/fallas.txt (en todas las partidas se cae un jugador)  
-bash pruebas/correr_pruebas.sh (corre todas las pruebas de una vez)  
+ ./torneo 2 1 pruebas/demo.txt      # una sola partida, dibujando el tablero en la terminal  
+ ./torneo 20 4 pruebas/fallas.txt    # en todas las partidas se cae un jugador  
+ bash pruebas/correr_pruebas.sh      # corre todas las pruebas de una vez  
+   
+```  
 Cada partida deja su registro en la carpeta logs (partida_001.log, partida_002.log, etc.), con cada movimiento y cómo quedó el tablero. Con Ctrl+C el torneo se cierra ordenado y el programa termina con código 130.  
 **Archivos**  
 - torneo.h: las constantes, las structs (Config, Ficha y Mesa) y las funciones que se usan entre archivos.  
@@ -23,7 +34,7 @@ Cada partida deja su registro en la carpeta logs (partida_001.log, partida_002.l
 - config.txt: configuración de ejemplo, con cada opción explicada.  
 - Makefile: atajo para compilar.  
 - pruebas/: configuraciones para probar casos especiales y el script correr_pruebas.sh.  
-- informe/: el informe de diseño en PDF (máximo 2 páginas), y su archivo LaTeX.  
+- informe.pdf: el informe de 2 páginas.  
 **Cómo funciona**  
 Todo corre en un solo proceso, con hilos. Hay un hilo portero (Ctrl+C), un hilo servidor, N hilos cliente y, por cada mesa que está jugando, un hilo juez y 13 hilos ficha.  
 1. Cada cliente duerme un tiempo al azar (entre 0 y llegada_max_ms), llega al servidor y se anota en la sala de espera.  
@@ -34,31 +45,22 @@ Todo corre en un solo proceso, con hilos. Hay un hilo portero (Ctrl+C), un hilo 
 6. Cuando termina, el juez espera a las 13 fichas (pthread_join), destruye el mutex y la variable de condición, cierra el log y devuelve la mesa (sem_post).  
 **El tablero**  
 Lo sacamos del dibujo del enunciado. Son 28 casillas: el cuadrado de 5x5 y un trono de 3 casillas arriba.  
-0  
-   
- / |  
-   
- 1---+---2  
-   
- / |   |   |  
-   
- 3--4---5---6--7  
-   
- |  |   |   |  |  
-   
- 8--9--10--11--12  
-   
- |  |   |   |  |  
-   
+```  
+        0  
+       / | \  
+     1---+---2  
+   / |   |   | \  
+  3--4---5---6--7  
+  |  |   |   |  |  
+  8--9--10--11--12  
+  |  |   |   |  |  
  13-14--15--16--17  
-   
- |  |   |   |  |  
-   
+  |  |   |   |  |  
  18-19--20--21--22  
-   
- |  |   |   |  |  
-   
+  |  |   |   |  |  
  23-24--25--26--27  
+   
+```  
 - El cuadrado no tiene diagonales, porque el dibujo no las tiene. Las únicas diagonales están en el trono.  
 - El + no es casilla: la línea que baja de la T llega directo a la 5.  
 - En el código el tablero se anota como líneas rectas. Dos casillas seguidas en una línea son vecinas, y tres seguidas permiten un salto del puma (puma, perro en el medio y casilla vacía al otro lado).  
@@ -72,7 +74,7 @@ En los logs, P es el puma, o es un perro y . es una casilla vacía.
 - Ctrl+C: está bloqueado en todos los hilos menos en el portero, que lo espera con sigwait.  
 - Avisar a todos que se cierra: la variable cerrando, con su propio mutex. Los jueces la revisan cada 200 ms.  
 **Funciones**  
-tablero.c  
+**tablero.c**  
 - preparar_tablero: arma las listas de vecinos y saltos a partir de las líneas del tablero. Se llama una vez antes de crear los hilos y después solo se lee, por eso no necesita mutex.  
 - agregar_vecino y agregar_salto: las usa preparar_tablero para ir llenando las listas.  
 - es_perro, son_vecinos y buscar_salto: reglas básicas del tablero.  
@@ -80,7 +82,7 @@ tablero.c
 - fila_y_columna y distancia: dan la distancia aproximada entre dos casillas, para que los perros sepan si se están acercando al puma.  
 - dibujar_tablero: deja el dibujo del tablero en un texto, para mandarlo al log o a la pantalla.  
 - imprimir_mapa: muestra los números de cada casilla (sale cuando el programa se usa mal).  
-mesa.c  
+**mesa.c**  
 - nombre_ficha, anotar y mostrar_tablero: escriben en el log y en la terminal.  
 - revisar_dueno_muerto: si el lock devolvió EOWNERDEAD, deja el mutex usable de nuevo, ve quién murió con él y declara el abandono.  
 - tomar_candado y soltar_candado: toman y sueltan el mutex del tablero, y anotan quién lo tiene.  
@@ -91,7 +93,7 @@ mesa.c
 - elegir_movimiento: el puma prefiere comerse un perro. Los perros prefieren casillas donde no se los puedan comer y que los acerquen al puma.  
 - preparar_partida: crea el mutex robusto y la variable de condición, pone las fichas, decide si en esta partida se va a caer un jugador y abre el log.  
 - juez: el hilo de cada mesa. Prepara la partida, lanza las fichas, duerme hasta que termine, espera a las fichas, anuncia el resultado, destruye el mutex y la variable de condición y devuelve la mesa.  
-torneo.c  
+**torneo.c**  
 - main: revisa los argumentos, lee el config, bloquea Ctrl+C antes de crear hilos, crea el portero, el servidor y los N clientes, los espera, muestra el resumen y libera todo.  
 - cliente: el hilo de cada jugador. Duerme un tiempo al azar, se anota en la sala y despierta al servidor.  
 - servidor: espera a que haya 2 en la sala, pide una mesa con sem_wait, busca cuál quedó libre y lanza a su juez. Al final espera a todos los jueces.  
@@ -100,7 +102,7 @@ torneo.c
 - hay_que_cerrar y pedir_cierre: leen y cambian la variable cerrando con su mutex.  
 - dormir_ms, dormir_atento_ms y ahora_ms: para dormir y medir el tiempo. dormir_atento_ms duerme de a 50 ms para despertar rápido si llega Ctrl+C.  
 - nombre_resultado, leer_argumento e imprimir_resumen: ayudan al main.  
-lector_config.c  
+**lector_config.c**  
 - config_por_defecto: pone los valores por defecto.  
 - leer_config: lee el archivo línea por línea (clave = valor), se salta los comentarios y avisa los errores.  
 - recortar, leer_numero, leer_perros y revisar_disposicion: ayudan a leer y revisar cada valor (que sea número, que esté en rango, que no haya dos fichas en la misma casilla).  
@@ -153,7 +155,7 @@ Herramientas utilizadas: Gemini.
 Para qué se usó:  
 1. Para entender el enunciado y los conceptos: qué primitiva de sincronización sirve para cada requisito, cómo leer el tablero del dibujo y los riesgos de deadlock, livelock y starvation.  
 2. Antes del programa completo se pidió un ejemplo corto (que no está en la entrega): 12 hilos que quieren la misma casilla, sin mutex y con mutex. Sirvió para ver la condición de carrera y cómo la arregla el mutex.  
-3. El código entregado (torneo.h, tablero.c, mesa.c, torneo.c y lector_config.c), el Makefile, el config.txt, los archivos de pruebas/, el informe y este README fueron generados con asistencia de Gemini. Se le pidió que el código fuera simple y fácil de explicar.  
+3. El código entregado (torneo.h, tablero.c, mesa.c, torneo.c y lector_config.c), el Makefile, el config.txt, los archivos de pruebas/, el informe y este README fueron generados con asistencia de Gemini.  
 4. Las pruebas las propuso y las ejecutó la IA, y después las corrimos nosotros con el script.  
 Nos repartimos el trabajo así: Valentín se encargó de tablero.c y mesa.c (el tablero, el juez y las fichas) y Gustavo de torneo.c y lector_config.c (el servidor, el semáforo de mesas, el Ctrl+C y el archivo de configuración). Cada uno subió su parte con sus propios commits.  
 Como no tenemos mucha experiencia programando en C con hilos, nos apoyamos bastante en la IA para aprender. Hay partes que la IA tuvo que resolver porque solos no habríamos podido. Esto no quiere decir que le pedimos el trabajo, sino que nos diera una solución para analizarla, entenderla y decidir si incluirla o no.  
