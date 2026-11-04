@@ -12,7 +12,8 @@ retardo_max_ms = 300
 
 
 # la semilla de los numeros al azar. con la misma semilla las partidas salen casi iguales, sirve pa repetir una prueba.
-# si no la pones se usa la hora, y el programa la muestra al principio semilla = 42
+# si no la pones se usa la hora, y el programa la muestra al principio 
+semilla = 42
 
 
 
@@ -34,26 +35,32 @@ retardo_max_ms = 300
 #         23-24--25--26--27
 #
 #
-# el puma parte arriba en la punta del trono y los perros abajo. tienen que ser 12 perros y no se pueden repetir casillas puma = 0
+# el puma parte arriba en la punta del trono y los perros abajo. tienen que ser 12 perros y no se pueden repetir casillas 
+puma = 0
 perros = 13 17 18 19 20 21 22 23 24 25 26 27
 
 
 
-# los jugadores llegan al servidor en algun momento entre 0 y este tiempo (ms) llegada_max_ms = 1000
+# los jugadores llegan al servidor en algun momento entre 0 y este tiempo (ms) 
+llegada_max_ms = 1000
 
 
 
-# en que % de las partidas se cae uno de los jugadores (de 0 a 100) con 0 no se cae nadie prob_falla = 0
+# en que % de las partidas se cae uno de los jugadores (de 0 a 100) con 0 no se cae nadie 
+prob_falla = 0
 
 
 
-# si una partida llega a esta cantidad de movimientos se da como empate, si no podria quedarse dando vueltas para siempre max_movimientos = 500
+# si una partida llega a esta cantidad de movimientos se da como empate, si no podria quedarse dando vueltas para siempre 
+max_movimientos = 500
 
 
 
 # que tanto se guarda en la carpeta logs:
-# 0 = nada, 1 = solo lo que pasa, 2 = lo que pasa y el tablero despues de cada movimiento log_detalle = 2
+# 0 = nada, 1 = solo lo que pasa, 2 = lo que pasa y el tablero despues de cada movimiento 
+log_detalle = 2
 
 
 
-# 1 = mostrar el tablero en la terminal despues de cada movimiento (conviene usarlo con una sola mesa, si no se mezclan todas) tablero_en_consola = 0
+# 1 = mostrar el tablero en la terminal despues de cada movimiento (conviene usarlo con una sola mesa, si no se mezclan todas) 
+tablero_en_consola = 0
