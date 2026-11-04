@@ -1,0 +1,5 @@
+# Para mostrar una partida en vivo en la terminal: ./torneo 2 1 pruebas/demo.txt
+semilla = 42
+llegada_max_ms = 200
+tablero_en_consola = 1
+log_detalle = 1

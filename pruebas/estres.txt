@@ -1,0 +1,6 @@
+# Prueba de estres: muchos jugadores y mesas, retardos cortos y sin archivos de log
+retardo_min_ms = 1
+retardo_max_ms = 10
+llegada_max_ms = 2000
+semilla = 2026
+log_detalle = 0

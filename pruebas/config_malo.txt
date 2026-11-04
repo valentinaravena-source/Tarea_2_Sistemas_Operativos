@@ -1,0 +1,6 @@
+retardo_min_ms = 300
+retardo_max_ms = 50
+semilla = hola
+perros = 1 2 3
+color = azul
+esto no tiene igual

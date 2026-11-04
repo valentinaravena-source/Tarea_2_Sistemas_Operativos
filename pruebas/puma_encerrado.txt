@@ -1,0 +1,6 @@
+# El puma parte en la punta del trono y ya esta encerrado:
+# deben ganar los perros apenas empieza la partida.
+semilla = 5
+puma = 0
+perros = 1 2 3 5 7 10 22 23 24 25 26 27
+log_detalle = 2

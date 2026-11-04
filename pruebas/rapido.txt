@@ -1,0 +1,6 @@
+# Retardos cortos para que las pruebas terminen rapido
+retardo_min_ms = 1
+retardo_max_ms = 5
+llegada_max_ms = 100
+semilla = 7
+log_detalle = 1

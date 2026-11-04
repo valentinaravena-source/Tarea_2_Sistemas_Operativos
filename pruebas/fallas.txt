@@ -1,0 +1,7 @@
+# Todas las partidas tienen un jugador que se cae (para probar la resiliencia)
+retardo_min_ms = 5
+retardo_max_ms = 20
+llegada_max_ms = 200
+semilla = 11
+prob_falla = 100
+log_detalle = 1
