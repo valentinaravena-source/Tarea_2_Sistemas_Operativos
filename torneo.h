@@ -42,6 +42,7 @@
 
 
 
+
 typedef struct {
 
     int retardo_min_ms;
@@ -52,12 +53,13 @@ typedef struct {
     int pos_perros[NUM_PERROS];
 
     int llegada_max_ms;   // los jugadores llegan entre 0 y este tiempo
-    int prob_falla;      // en %
+    int prob_falla;       // en %
     int max_movimientos;  // si se llega a esto es empate
     int log_detalle;      // 0 nada, 1 solo lo que pasa, 2 lo que pasa + el tablero
     int tablero_en_consola;
 
 } Config;
+
 
 
 struct Mesa;
@@ -74,6 +76,7 @@ typedef struct {
     struct Mesa *mesa;
 
 } Ficha;
+
 
 
 typedef struct Mesa {
@@ -109,36 +112,89 @@ typedef struct Mesa {
 // extern = existen pero estan creadas en otro archivo
 extern Config config;
 
+
+
 // estas las llena tablero.c al principio y despues nadie las cambia,
 // por eso los hilos las pueden leer sin candado
 extern int vecinos[NUM_CASILLAS][MAX_VECINOS];
+
+
 extern int num_vecinos[NUM_CASILLAS];
+
+
 extern int salto_sobre[NUM_CASILLAS][MAX_VECINOS];
+
 extern int salto_destino[NUM_CASILLAS][MAX_VECINOS];
+
 extern int num_saltos[NUM_CASILLAS];
+
+
 
 // funciones de tablero.c
 void preparar_tablero(void);
+
+
+
 int es_perro(int contenido);
+
+
 int son_vecinos(int a, int b);
+
+
+
 int buscar_salto(int desde, int hacia);
+
+
+
+
 int puma_puede_moverse(int casillas[]);
+
+
 int distancia(int a, int b);
+
+
+
 void dibujar_tablero(int casillas[], char *texto, int tam);
+
+
 void imprimir_mapa(void);
+
+
+
 
 // funciones de mesa.c
 void *juez(void *arg);
 
+
+
+
 // funciones de lector_config.c
 void config_por_defecto(Config *c);
+
+
 int leer_config(char *archivo, Config *c);
+
+
+
 
 // funciones de torneo.c
 int hay_que_cerrar(void);
+
+
+
+
+
 void devolver_mesa(Mesa *m, int resultado);
+
+
+
+
 void dormir_ms(int ms);
+
 long long ahora_ms(void);
+
+
+
 char *nombre_resultado(int resultado);
 
 #endif

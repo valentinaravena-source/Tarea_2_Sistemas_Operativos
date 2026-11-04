@@ -52,11 +52,16 @@ int salto_destino[NUM_CASILLAS][MAX_VECINOS];
 int num_saltos[NUM_CASILLAS];
 
 
+
+
 void agregar_vecino(int a, int b) {
 
     vecinos[a][num_vecinos[a]] = b;
     num_vecinos[a]++;
 }
+
+
+
 
 void agregar_salto(int desde, int sobre, int hacia) {
 
@@ -66,18 +71,23 @@ void agregar_salto(int desde, int sobre, int hacia) {
 }
 
 
+
+
 // se llama una sola vez en el main, antes de crear los hilos
 void preparar_tablero(void) {
 
     memset(num_vecinos, 0, sizeof(num_vecinos));
     memset(num_saltos, 0, sizeof(num_saltos));
 
+
     for (int l = 0; l < NUM_LINEAS; l++) {
+
 
         for (int k = 0; lineas[l][k] != -1; k++) {
 
             int a = lineas[l][k];
             int b = lineas[l][k + 1];
+
             if (b == -1) {
                 break;
             }
@@ -86,6 +96,8 @@ void preparar_tablero(void) {
             agregar_vecino(b, a);
 
             int c = lineas[l][k + 2];
+
+
             if (c != -1) {
                 agregar_salto(a, b, c);   // desde a salta sobre b y cae en c
                 agregar_salto(c, b, a);   // y al reves
@@ -95,8 +107,10 @@ void preparar_tablero(void) {
 }
 
 
-
 int es_perro(int contenido) {
+
+
+
 
     if (contenido >= 0 && contenido < NUM_PERROS) {
         return 1;
@@ -104,9 +118,19 @@ int es_perro(int contenido) {
     return 0;
 }
 
+
+
+
+
 int son_vecinos(int a, int b) {
 
+
+
+
     for (int k = 0; k < num_vecinos[a]; k++) {
+
+
+
         if (vecinos[a][k] == b) {
             return 1;
         }
@@ -114,10 +138,18 @@ int son_vecinos(int a, int b) {
     return 0;
 }
 
+
 // si se puede saltar de desde a hacia devuelve la casilla del medio, si no -1
 int buscar_salto(int desde, int hacia) {
 
+
+
     for (int k = 0; k < num_saltos[desde]; k++) {
+
+
+
+
+
         if (salto_destino[desde][k] == hacia) {
             return salto_sobre[desde][k];
         }
@@ -125,28 +157,49 @@ int buscar_salto(int desde, int hacia) {
     return -1;
 }
 
-
 // si devuelve 0 el puma quedo encerrado y ganan los perros
 int puma_puede_moverse(int casillas[]) {
 
     int pos = -1;
+
+
+
+
     for (int c = 0; c < NUM_CASILLAS; c++) {
+
+
         if (casillas[c] == FICHA_PUMA) {
             pos = c;
         }
     }
+
+
+
     if (pos == -1) {
         return 0;
     }
 
+
+
+
     for (int k = 0; k < num_vecinos[pos]; k++) {
+
+
+
+
         if (casillas[vecinos[pos][k]] == VACIA) {
             return 1;
         }
     }
 
+
+
+
+
     // aunque tenga todo ocupado alrededor, si se puede comer a alguien no esta encerrado
     for (int k = 0; k < num_saltos[pos]; k++) {
+
+
         if (es_perro(casillas[salto_sobre[pos][k]]) && casillas[salto_destino[pos][k]] == VACIA) {
             return 1;
         }
@@ -154,27 +207,41 @@ int puma_puede_moverse(int casillas[]) {
     return 0;
 }
 
-
 // fila -2 es la T, fila -1 el trono y de 0 a 4 el cuadrado
 void fila_y_columna(int c, int *fila, int *col) {
+
+
 
     if (c == 0) {
         *fila = -2;
         *col = 2;
     }
+
+
+
+
     else if (c == 1) {
         *fila = -1;
         *col = 1;
     }
+
+
+
+
     else if (c == 2) {
         *fila = -1;
         *col = 3;
     }
+
     else {
         *fila = (c - 3) / 5;
         *col = (c - 3) % 5;
     }
 }
+
+
+
+
 
 // no es exacta (no sigue las lineas) pero sirve pa q los perros sepan si se acercan al puma
 int distancia(int a, int b) {
@@ -208,13 +275,18 @@ char *plantilla[ALTO_DIBUJO] = {
     "  .---.---.---.---.   "
 };
 
-// deja el dibujo en 'texto' en vez de imprimirlo, asi se puede mandar al log o a la pantalla
+
+
+
+// deja el dibujo en "texto" en vez de imprimirlo, asi se puede mandar al log o a la pantalla
 void dibujar_tablero(int casillas[], char *texto, int tam) {
 
     char dibujo[ALTO_DIBUJO][ANCHO_DIBUJO + 1];
+
     for (int r = 0; r < ALTO_DIBUJO; r++) {
         strcpy(dibujo[r], plantilla[r]);
     }
+
 
     for (int c = 0; c < NUM_CASILLAS; c++) {
 
@@ -223,12 +295,23 @@ void dibujar_tablero(int casillas[], char *texto, int tam) {
         int renglon = 4 + 2 * fila;   // asi la T cae en el renglon 0 y el trono en el 2
         int x = 2 + 4 * col;
 
+
+
         if (casillas[c] == FICHA_PUMA) {
             dibujo[renglon][x] = 'P';
         }
+
+
+
+
         else if (es_perro(casillas[c])) {
             dibujo[renglon][x] = 'o';
         }
+
+
+
+
+
         else {
             dibujo[renglon][x] = '.';
         }
@@ -236,6 +319,7 @@ void dibujar_tablero(int casillas[], char *texto, int tam) {
 
     texto[0] = '\0';
     int usado = 0;
+
     for (int r = 0; r < ALTO_DIBUJO && usado < tam; r++) {
         usado += snprintf(texto + usado, tam - usado, "      %s\n", dibujo[r]);
     }
